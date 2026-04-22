@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Swim Assistant — Workout Editor</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>Swim Assistant</h1>
+        <p class="subtitle">Workout Editor</p>
+    </header>
+
+    <main>
+        <section class="card">
+            <h2>1. Workout gestalten</h2>
+
+            <div class="field">
+                <label for="workoutName">Workout-Name (optional, zur Orientierung)</label>
+                <input type="text" id="workoutName" placeholder="z.B. Donnerstag Kraul">
+            </div>
+
+            <div id="intervals" class="intervals"></div>
+
+            <button id="addInterval" class="btn btn-secondary">+ Intervall hinzufügen</button>
+
+            <div class="summary" id="summary"></div>
+        </section>
+
+        <section class="card">
+            <h2>2. Definition kopieren</h2>
+            <p class="hint">Diesen String in Garmin Connect → Swim Assistant → Einstellungen → <em>Definition</em> einfügen.</p>
+            <div class="output-row">
+                <textarea id="output" rows="3" readonly></textarea>
+                <button id="copyBtn" class="btn btn-primary">Kopieren</button>
+            </div>
+            <div class="copy-status" id="copyStatus"></div>
+        </section>
+
+        <section class="card">
+            <h2>Bestehendes Workout laden</h2>
+            <p class="hint">Füge einen Workout-String ein um ihn zu bearbeiten.</p>
+            <div class="output-row">
+                <textarea id="importInput" rows="3" placeholder="z.B. 200:Einschwimmen;100*4:Kraul;50-:Pause;200:Ausschwimmen"></textarea>
+                <button id="importBtn" class="btn btn-secondary">Laden</button>
+            </div>
+            <div class="copy-status" id="importStatus"></div>
+        </section>
+
+        <section class="card">
+            <h2>Syntax-Referenz</h2>
+            <table class="syntax-table">
+                <tr><th>Pattern</th><th>Bedeutung</th></tr>
+                <tr><td><code>200</code></td><td>1× 200m</td></tr>
+                <tr><td><code>100*4</code></td><td>4× 100m</td></tr>
+                <tr><td><code>50-</code></td><td>1× 50m <strong>Pause</strong></td></tr>
+                <tr><td><code>25*8-</code></td><td>8× 25m Pause</td></tr>
+                <tr><td><code>100*4:Kraul</code></td><td>4× 100m mit Beschreibung "Kraul"</td></tr>
+            </table>
+            <p class="hint"><strong>Typ-Automatik:</strong> erstes aktives Intervall = Warmup, letztes = Cooldown, dazwischen = Hauptteil. Pausen (<code>-</code>) werden übersprungen.</p>
+        </section>
+    </main>
+
+    <footer>
+        <p>Keine Registrierung, keine Datenspeicherung — alles läuft im Browser.</p>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
