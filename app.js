@@ -21,6 +21,11 @@ const addBtn = document.getElementById('addInterval');
 const outputEl = document.getElementById('output');
 const copyBtn = document.getElementById('copyBtn');
 const copyStatus = document.getElementById('copyStatus');
+const charCountEl = document.getElementById('charCount');
+
+// Garmin Connect alphaNumeric-Felder tolerieren zuverlaessig bis 255 Zeichen.
+// Laengere Strings werden vom Save-Dialog verworfen.
+const MAX_DEF_LENGTH = 255;
 const summaryEl = document.getElementById('summary');
 const importInput = document.getElementById('importInput');
 const importBtn = document.getElementById('importBtn');
@@ -54,7 +59,15 @@ function render() {
 }
 
 function renderOutput() {
-    outputEl.value = generateString(intervals);
+    const str = generateString(intervals);
+    outputEl.value = str;
+    renderCharCount(str.length);
+}
+
+function renderCharCount(len) {
+    const over = len > MAX_DEF_LENGTH;
+    charCountEl.textContent = `${len} / ${MAX_DEF_LENGTH} Zeichen` + (over ? ' — zu lang!' : '');
+    charCountEl.classList.toggle('over-limit', over);
 }
 
 function renderSummary() {
@@ -204,6 +217,10 @@ copyBtn.addEventListener('click', async () => {
     const str = outputEl.value;
     if (str.length === 0) {
         showStatus(copyStatus, 'Keine Definition zum Kopieren.', true);
+        return;
+    }
+    if (str.length > MAX_DEF_LENGTH) {
+        showStatus(copyStatus, `String zu lang (${str.length}/${MAX_DEF_LENGTH}). Intervalle entfernen oder kürzere Beschreibungen.`, true);
         return;
     }
     try {

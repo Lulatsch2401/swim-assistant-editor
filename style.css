@@ -220,6 +220,19 @@ textarea {
     color: #d70015;
 }
 
+.char-count {
+    margin-top: 6px;
+    font-size: 12px;
+    color: #6e6e73;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.char-count.over-limit {
+    color: #d70015;
+    font-weight: 500;
+}
+
 .syntax-table {
     width: 100%;
     font-size: 14px;
