@@ -39,8 +39,11 @@ function render() {
     intervals.forEach((iv, idx) => {
         const row = document.createElement('div');
         row.className = 'interval-row' + (iv.rest ? ' rest' : '');
+        row.draggable = true;
+        row.dataset.idx = idx;
 
         row.innerHTML = `
+            <span class="drag-handle" aria-hidden="true" title="Ziehen zum Verschieben">⋮⋮</span>
             <input type="number" min="1" max="50" value="${iv.reps}" data-idx="${idx}" data-field="reps" aria-label="Wiederholungen">
             <input type="number" min="1" max="5000" value="${iv.dist}" data-idx="${idx}" data-field="dist" aria-label="Distanz in Metern">
             <label class="rest-toggle">
@@ -48,7 +51,8 @@ function render() {
                 Pause
             </label>
             <input type="text" maxlength="40" value="${escapeHtml(iv.desc)}" placeholder="Beschreibung (optional)" data-idx="${idx}" data-field="desc">
-            <button class="btn-danger" data-idx="${idx}" data-action="remove" aria-label="Entfernen">×</button>
+            <button class="btn-icon" data-idx="${idx}" data-action="duplicate" aria-label="Duplizieren" title="Duplizieren">⧉</button>
+            <button class="btn-danger" data-idx="${idx}" data-action="remove" aria-label="Entfernen" title="Entfernen">×</button>
         `;
 
         intervalsEl.appendChild(row);
@@ -206,12 +210,97 @@ intervalsEl.addEventListener('input', e => {
 
 intervalsEl.addEventListener('click', e => {
     const t = e.target;
-    if (t.dataset.action === 'remove') {
-        const idx = Number(t.dataset.idx);
+    const action = t.dataset.action;
+    if (!action) { return; }
+    const idx = Number(t.dataset.idx);
+    if (isNaN(idx)) { return; }
+    if (action === 'remove') {
         intervals.splice(idx, 1);
+        render();
+    } else if (action === 'duplicate') {
+        // Flache Kopie reicht: alle Felder sind Primitives.
+        intervals.splice(idx + 1, 0, { ...intervals[idx] });
         render();
     }
 });
+
+// ------------------------------------------------------------
+// Drag & Drop — Intervalle umsortieren
+// ------------------------------------------------------------
+// dragFromIdx haelt den Start-Index einer laufenden Drag-Operation.
+// Beim Drop wird das Element an dragOverIdx eingesetzt und ein einziges
+// render() triggert das vollstaendige Neu-Rendering inkl. Output.
+let dragFromIdx = null;
+
+intervalsEl.addEventListener('dragstart', e => {
+    const row = e.target.closest('.interval-row');
+    if (!row) { return; }
+    // Inputs duerfen weiterhin Text-Selektion erlauben, also Drag nur ab
+    // Handle oder Row-Leerflaeche (nicht ab einem focussed Input).
+    if (e.target.tagName === 'INPUT') {
+        e.preventDefault();
+        return;
+    }
+    dragFromIdx = Number(row.dataset.idx);
+    row.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    // Firefox braucht gesetzten dataTransfer damit dragstart feuert.
+    e.dataTransfer.setData('text/plain', String(dragFromIdx));
+});
+
+intervalsEl.addEventListener('dragend', e => {
+    const row = e.target.closest('.interval-row');
+    if (row) { row.classList.remove('dragging'); }
+    clearDropIndicator();
+    dragFromIdx = null;
+});
+
+intervalsEl.addEventListener('dragover', e => {
+    if (dragFromIdx === null) { return; }
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const row = e.target.closest('.interval-row');
+    clearDropIndicator();
+    if (!row) { return; }
+    const rect = row.getBoundingClientRect();
+    const after = (e.clientY - rect.top) > rect.height / 2;
+    row.classList.add(after ? 'drop-after' : 'drop-before');
+});
+
+intervalsEl.addEventListener('dragleave', e => {
+    // Nur Indikator vom verlassenen Row entfernen, nicht global clearen
+    // (sonst flackert es beim Wandern zwischen Rows).
+    const row = e.target.closest('.interval-row');
+    if (row && !row.contains(e.relatedTarget)) {
+        row.classList.remove('drop-before', 'drop-after');
+    }
+});
+
+intervalsEl.addEventListener('drop', e => {
+    if (dragFromIdx === null) { return; }
+    e.preventDefault();
+    const row = e.target.closest('.interval-row');
+    if (!row) { clearDropIndicator(); return; }
+    const toIdx = Number(row.dataset.idx);
+    const rect = row.getBoundingClientRect();
+    const after = (e.clientY - rect.top) > rect.height / 2;
+    let insertAt = after ? toIdx + 1 : toIdx;
+
+    if (dragFromIdx !== insertAt && dragFromIdx !== insertAt - 1) {
+        const [moved] = intervals.splice(dragFromIdx, 1);
+        // Nach Splice kann sich der Ziel-Index verschoben haben.
+        if (dragFromIdx < insertAt) { insertAt--; }
+        intervals.splice(insertAt, 0, moved);
+        render();
+    }
+    clearDropIndicator();
+    dragFromIdx = null;
+});
+
+function clearDropIndicator() {
+    intervalsEl.querySelectorAll('.drop-before, .drop-after')
+        .forEach(el => el.classList.remove('drop-before', 'drop-after'));
+}
 
 copyBtn.addEventListener('click', async () => {
     const str = outputEl.value;
